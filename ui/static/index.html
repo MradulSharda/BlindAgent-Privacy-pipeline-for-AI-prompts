@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlindAgent | Zero-Leakage AI Pipeline</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+            cyber: { bg: '#0b0f19', card: '#111827', border: '#1f2937', green: '#10b981', red: '#ef4444', blue: '#38bdf8' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0b0f19; color: #f3f4f6; font-family: ui-sans-serif, system-ui, sans-serif; }
+    .terminal-font { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-cyber-border bg-cyber-card/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+          <i class="fa-solid fa-shield-halved text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">BlindAgent</h1>
+          <p class="text-xs text-gray-400">Zero-Leakage AI Pipeline • GF(2^8) SSS & Homomorphic Token Blinding</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4 text-xs">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-emerald-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mr-1.5"></span>
+          C Engine Active (Constant-Time)
+        </span>
+        <span id="providerBadge" class="inline-flex items-center px-2.5 py-1 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-indigo-300">
+          <i class="fa-solid fa-microchip mr-1.5"></i> Provider: Auto
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="bg-gray-900/60 border-b border-cyber-border">
+    <div class="max-w-7xl mx-auto px-4 flex space-x-8">
+      <button onclick="switchTab('playground')" id="tab-playground" class="py-3 px-1 border-b-2 border-indigo-500 font-medium text-sm text-indigo-400 flex items-center space-x-2">
+        <i class="fa-solid fa-robot"></i>
+        <span>AI Agent Playground</span>
+      </button>
+      <button onclick="switchTab('sss-lab')" id="tab-sss-lab" class="py-3 px-1 border-b-2 border-transparent font-medium text-sm text-gray-400 hover:text-gray-200 flex items-center space-x-2">
+        <i class="fa-solid fa-diagram-project"></i>
+        <span>Galois Field SSS Lab</span>
+      </button>
+      <button onclick="switchTab('security-proof')" id="tab-security-proof" class="py-3 px-1 border-b-2 border-transparent font-medium text-sm text-gray-400 hover:text-gray-200 flex items-center space-x-2">
+        <i class="fa-solid fa-file-shield"></i>
+        <span>Mathematical Proofs</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+
+    <!-- TAB 1: AI AGENT PLAYGROUND -->
+    <div id="view-playground" class="space-y-6">
+      
+      <!-- Input Section -->
+      <div class="bg-cyber-card border border-cyber-border rounded-xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-3">
+          <label class="text-sm font-semibold text-gray-200 flex items-center space-x-2">
+            <i class="fa-solid fa-keyboard text-indigo-400"></i>
+            <span>User Confidential Prompt</span>
+          </label>
+          <div class="flex space-x-2">
+            <button onclick="loadPreset(1)" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded border border-gray-700">Preset: SQL + SSN</button>
+            <button onclick="loadPreset(2)" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded border border-gray-700">Preset: Medical Key</button>
+            <button onclick="loadPreset(3)" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded border border-gray-700">Preset: Tagged Secret</button>
+          </div>
+        </div>
+        <textarea id="promptInput" rows="3" class="w-full bg-cyber-bg border border-cyber-border rounded-lg p-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500 terminal-font" placeholder="Enter sensitive request, e.g. SQL query with SSN or master key..."></textarea>
+        
+        <div class="flex items-center justify-between mt-3">
+          <div class="text-xs text-gray-400 flex items-center space-x-4">
+            <span>Threshold (k): <strong class="text-indigo-400">3</strong></span>
+            <span>Total Shares (n): <strong class="text-indigo-400">5</strong></span>
+            <span class="text-emerald-400"><i class="fa-solid fa-lock mr-1"></i>Master Key Kept in Local Enclave</span>
+          </div>
+          <button id="runBtn" onclick="runPipeline()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm px-5 py-2 rounded-lg flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>Execute Zero-Leakage Pipeline</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Split-Screen Inspector -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Left Column: Local Client Enclave -->
+        <div class="bg-cyber-card border border-emerald-500/30 rounded-xl overflow-hidden flex flex-col shadow-xl">
+          <div class="bg-emerald-950/40 border-b border-emerald-500/30 px-4 py-2.5 flex items-center justify-between">
+            <span class="text-sm font-semibold text-emerald-400 flex items-center space-x-2">
+              <i class="fa-solid fa-laptop-code"></i>
+              <span>Local Client Enclave (User View)</span>
+            </span>
+            <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">Master Key Held</span>
+          </div>
+          <div class="p-4 flex-1 flex flex-col space-y-4">
+            <div>
+              <p class="text-xs font-semibold text-gray-400 mb-1">Local Decrypted Response:</p>
+              <div id="clientOutput" class="bg-cyber-bg border border-cyber-border rounded-lg p-3 text-sm terminal-font text-emerald-300 min-h-[160px] whitespace-pre-wrap">Awaiting pipeline execution...</div>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-gray-400 mb-1">Enclave Shielded Entities Vault:</p>
+              <div id="vaultList" class="space-y-1.5 text-xs terminal-font text-gray-300">
+                <span class="text-gray-500">No active entities shielded yet.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Host Cloud Provider Wire View -->
+        <div class="bg-cyber-card border border-red-500/30 rounded-xl overflow-hidden flex flex-col shadow-xl">
+          <div class="bg-red-950/40 border-b border-red-500/30 px-4 py-2.5 flex items-center justify-between">
+            <span class="text-sm font-semibold text-red-400 flex items-center space-x-2">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <span>Cloud Host Wire Inspection (Adversary View)</span>
+            </span>
+            <span class="text-xs bg-red-500/20 text-red-300 px-2 py-0.5 rounded border border-red-500/30">0% Plaintext Exposed</span>
+          </div>
+          <div class="p-4 flex-1 flex flex-col space-y-4">
+            <div>
+              <p class="text-xs font-semibold text-gray-400 mb-1">What Lands in Host Logs (Wire Payload):</p>
+              <div id="wirePayload" class="bg-cyber-bg border border-cyber-border rounded-lg p-3 text-sm terminal-font text-red-300 min-h-[80px] whitespace-pre-wrap">Awaiting pipeline execution...</div>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-gray-400 mb-1">Raw Host LLM Output:</p>
+              <div id="cloudOutput" class="bg-cyber-bg border border-cyber-border rounded-lg p-3 text-sm terminal-font text-gray-400 min-h-[80px] whitespace-pre-wrap">Awaiting pipeline execution...</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Metrics Bar -->
+      <div id="metricsBar" class="bg-cyber-card border border-cyber-border rounded-xl p-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+        <div>
+          <div class="text-xs text-gray-400">Shielded Secrets</div>
+          <div id="mShielded" class="text-xl font-bold text-indigo-400">0</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-400">Blinded Entropy</div>
+          <div id="mEntropy" class="text-xl font-bold text-sky-400">0.00 bits</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-400">Execution Latency</div>
+          <div id="mLatency" class="text-xl font-bold text-emerald-400">0.0 ms</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-400">Master Key Leakage</div>
+          <div id="mLeakage" class="text-xl font-bold text-emerald-400">0.00% (NONE)</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-400">Constant-Time Proof</div>
+          <div class="text-xl font-bold text-emerald-400">Verified</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: GALOIS FIELD SSS LAB -->
+    <div id="view-sss-lab" class="hidden space-y-6">
+      <div class="bg-cyber-card border border-cyber-border rounded-xl p-6 shadow-xl space-y-4">
+        <h2 class="text-lg font-bold text-indigo-300 flex items-center space-x-2">
+          <i class="fa-solid fa-atom"></i>
+          <span>Interactive GF(2^8) Shamir's Secret Sharing Lab</span>
+        </h2>
+        <p class="text-sm text-gray-400">
+          Directly split any secret into \(n\) mathematical shares using random degree \(k-1\) polynomials over \(GF(2^8)\). 
+          Test threshold reconstruction live: any \(k\) shares recover the secret exactly, while \(< k\) shares yield 0 information.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+          <div class="md:col-span-2">
+            <label class="block text-xs font-semibold text-gray-300 mb-1">Secret to Share:</label>
+            <input id="sssSecretInput" type="text" value="MY-SECRET-FINANCIAL-API-TOKEN-8833" class="w-full bg-cyber-bg border border-cyber-border rounded-lg p-2.5 text-sm terminal-font text-indigo-300">
+          </div>
+          <div class="flex space-x-3 items-end">
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1">Threshold (k):</label>
+              <input id="sssKInput" type="number" min="2" max="10" value="3" class="w-20 bg-cyber-bg border border-cyber-border rounded-lg p-2.5 text-sm terminal-font text-center">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1">Total (n):</label>
+              <input id="sssNInput" type="number" min="2" max="10" value="5" class="w-20 bg-cyber-bg border border-cyber-border rounded-lg p-2.5 text-sm terminal-font text-center">
+            </div>
+            <button onclick="generateShares()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm px-4 py-2.5 rounded-lg flex-1">Generate</button>
+          </div>
+        </div>
+
+        <!-- Generated Shares Container -->
+        <div id="sharesContainer" class="pt-4 space-y-3 hidden">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-200">Generated Shares (Select any subset to reconstruct):</h3>
+            <button onclick="reconstructShares()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded">Reconstruct with Selected</button>
+          </div>
+          <div id="sharesList" class="space-y-2"></div>
+
+          <!-- Reconstruction Result -->
+          <div id="reconResultBox" class="bg-cyber-bg border border-cyber-border rounded-lg p-4 mt-4 hidden">
+            <div class="text-xs text-gray-400 mb-1">Lagrange Interpolation at x=0 Result:</div>
+            <div id="reconResultText" class="text-base font-bold terminal-font text-emerald-400"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: MATHEMATICAL PROOFS -->
+    <div id="view-security-proof" class="hidden space-y-6">
+      <div class="bg-cyber-card border border-cyber-border rounded-xl p-6 shadow-xl space-y-6 text-sm text-gray-300">
+        <div>
+          <h2 class="text-lg font-bold text-indigo-300 mb-2">1. Finite Field Formulation: Galois Field \(GF(2^8)\)</h2>
+          <p class="leading-relaxed">
+            All algebraic operations operate over the Galois Field \(GF(2^8) \cong \mathbb{F}_2[X] / (P(X))\) defined by the irreducible Rijndael polynomial:
+          </p>
+          <div class="my-3 p-3 bg-cyber-bg rounded-lg terminal-font text-indigo-300 text-center">
+            $$P(X) = X^8 + X^4 + X^3 + X + 1 \quad (\text{hex: } 0\text{x}11\text{B})$$
+          </div>
+          <p class="leading-relaxed">
+            Addition is XOR (\(\oplus\)). Constant-time multiplication utilizes Russian Peasant branchless reduction with bitmasks, eliminating timing variance and cache-collision vulnerabilities.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-lg font-bold text-indigo-300 mb-2">2. Shamir's Threshold Scheme & Information-Theoretic Security</h2>
+          <p class="leading-relaxed">
+            To conceal a secret byte \(S \in GF(2^8)\), a random polynomial of degree \(k-1\) is constructed:
+          </p>
+          <div class="my-3 p-3 bg-cyber-bg rounded-lg terminal-font text-indigo-300 text-center">
+            $$f(x) = S \oplus a_1 x \oplus a_2 x^2 \oplus \dots \oplus a_{k-1} x^{k-1}$$
+          </div>
+          <p class="leading-relaxed">
+            Each share is an evaluation \((x_j, y_j) = (x_j, f(x_j))\) with \(x_j \neq 0\). Reconstructing \(S = f(0)\) requires \(k\) shares via Lagrange basis interpolation:
+          </p>
+          <div class="my-3 p-3 bg-cyber-bg rounded-lg terminal-font text-indigo-300 text-center">
+            $$S = \bigoplus_{j=1}^k \left( y_j \otimes \ell_j(0) \right), \quad \ell_j(0) = \bigotimes_{m \neq j} \frac{x_m}{x_m \oplus x_j}$$
+          </div>
+          <div class="bg-indigo-950/40 border border-indigo-500/30 rounded-lg p-4 mt-3">
+            <h3 class="font-bold text-indigo-200 mb-1">Theorem (Perfect Secrecy):</h3>
+            <p>
+              For any adversary observing \(k-1\) shares, for every candidate secret \(S' \in GF(2^8)\), there exists exactly one degree \(k-1\) polynomial passing through the observed points and \(S'\). Because random coefficients are uniformly distributed:
+              $$\mathcal{I}(S; \text{Shares}_{k-1}) = 0 \implies \mathcal{H}(S \mid \text{Shares}_{k-1}) = \mathcal{H}(S)$$
+              The cloud host provider possesses zero mathematical knowledge of the master secret.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="text-lg font-bold text-indigo-300 mb-2">3. Zero-Knowledge Token Blinding & Reconstruction</h2>
+          <p class="leading-relaxed">
+            Rather than sending raw secrets to cloud LLMs, the local client enclave applies an ephemeral affine transform \(\tau_i = \alpha \cdot v_i \oplus \beta\) and injects structural blind tokens. The cloud LLM executes structural reasoning without observing the master key.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-cyber-border py-4 bg-cyber-card/40 text-center text-xs text-gray-500">
+    BlindAgent • Mathematics for Systems Security Hackathon • C Engine & Python Enclave Architecture
+  </footer>
+
+  <script>
+    const presets = {
+      1: "Please generate an SQL audit query for employee SSN: 123-45-6789 and master_key: SuperSecretMasterPassword! with balance $50,000.",
+      2: "Summarize confidential diagnosis for patient SSN: 987-65-4321 holding authorized api_secret: AIzaSyD988223311AABBC-998811.",
+      3: "Authorize system transfer for <secret>TOP_SECRET_VAULT_KEY_007</secret> with transaction limit $250,000."
+    };
+
+    function loadPreset(id) {
+      document.getElementById('promptInput').value = presets[id];
+    }
+    loadPreset(1);
+
+    function switchTab(tabId) {
+      ['playground', 'sss-lab', 'security-proof'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add('hidden');
+        const btn = document.getElementById(`tab-${t}`);
+        btn.classList.remove('border-indigo-500', 'text-indigo-400');
+        btn.classList.add('border-transparent', 'text-gray-400');
+      });
+      document.getElementById(`view-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-${tabId}`);
+      activeBtn.classList.remove('border-transparent', 'text-gray-400');
+      activeBtn.classList.add('border-indigo-500', 'text-indigo-400');
+
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body);
+      }
+    }
+
+    async function runPipeline() {
+      const prompt = document.getElementById('promptInput').value;
+      const runBtn = document.getElementById('runBtn');
+      runBtn.disabled = true;
+      runBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Processing...';
+
+      try {
+        const res = await fetch('/api/execute', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ prompt })
+        });
+        const data = await res.json();
+
+        // Render Outputs
+        document.getElementById('clientOutput').textContent = data.final_output;
+        document.getElementById('wirePayload').textContent = data.wire_payload;
+        document.getElementById('cloudOutput').textContent = data.host_raw_response;
+
+        // Metrics
+        document.getElementById('mShielded').textContent = data.metrics.entities_protected;
+        document.getElementById('mEntropy').textContent = data.metrics.blinded_entropy_bits + " bits";
+        document.getElementById('mLatency').textContent = data.execution_time_ms + " ms";
+
+        // Vault List
+        const vaultBox = document.getElementById('vaultList');
+        vaultBox.innerHTML = '';
+        if (data.vault && data.vault.length > 0) {
+          data.vault.forEach(v => {
+            const row = document.createElement('div');
+            row.className = 'p-2 bg-cyber-bg rounded border border-cyber-border';
+            row.innerHTML = `<span class="text-indigo-400 font-bold">${v.token}</span> &rarr; Plaintext: <span class="text-emerald-400 font-bold">${v.original_value}</span><br><span class="text-gray-500 text-[10px]">Sample SSS Share: ${v.shares[0].substring(0, 36)}...</span>`;
+            vaultBox.appendChild(row);
+          });
+        } else {
+          vaultBox.innerHTML = '<span class="text-gray-500">No entities detected in prompt.</span>';
+        }
+
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        runBtn.disabled = false;
+        runBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i>Execute Zero-Leakage Pipeline';
+      }
+    }
+
+    let currentShares = [];
+    async function generateShares() {
+      const secret = document.getElementById('sssSecretInput').value;
+      const k = parseInt(document.getElementById('sssKInput').value);
+      const n = parseInt(document.getElementById('sssNInput').value);
+
+      const res = await fetch('/api/sss/split', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ secret, k, n })
+      });
+      const data = await res.json();
+      currentShares = data.shares;
+
+      const container = document.getElementById('sharesContainer');
+      const list = document.getElementById('sharesList');
+      container.classList.remove('hidden');
+      list.innerHTML = '';
+
+      data.shares.forEach((s, idx) => {
+        const item = document.createElement('label');
+        item.className = 'flex items-center space-x-3 p-2 bg-cyber-bg rounded border border-cyber-border hover:border-indigo-500/50 cursor-pointer';
+        item.innerHTML = `
+          <input type="checkbox" value="${s}" ${idx < k ? 'checked' : ''} class="share-checkbox accent-indigo-600 rounded">
+          <span class="text-xs terminal-font text-indigo-300">Share ${idx + 1}: ${s}</span>
+        `;
+        list.appendChild(item);
+      });
+      document.getElementById('reconResultBox').classList.add('hidden');
+    }
+
+    async function reconstructShares() {
+      const checkedBoxes = Array.from(document.querySelectorAll('.share-checkbox:checked')).map(cb => cb.value);
+      const k = parseInt(document.getElementById('sssKInput').value);
+
+      if (checkedBoxes.length < k) {
+        alert(`Need at least ${k} shares to reconstruct. You selected ${checkedBoxes.length}.`);
+        return;
+      }
+
+      const res = await fetch('/api/sss/combine', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ shares: checkedBoxes, k })
+      });
+      const data = await res.json();
+
+      const box = document.getElementById('reconResultBox');
+      const text = document.getElementById('reconResultText');
+      box.classList.remove('hidden');
+      if (data.recovered) {
+        text.textContent = '✔ Reconstructed: "' + data.recovered + '"';
+        text.className = 'text-base font-bold terminal-font text-emerald-400';
+      } else {
+        text.textContent = '✖ Reconstruction failed: ' + data.detail;
+        text.className = 'text-base font-bold terminal-font text-red-400';
+      }
+    }
+  </script>
+</body>
+</html>

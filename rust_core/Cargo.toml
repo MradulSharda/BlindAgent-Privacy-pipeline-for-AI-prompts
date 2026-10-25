@@ -1,0 +1,12 @@
+[package]
+name = "blindagent-crypto-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["BlindAgent Security Team"]
+description = "Constant-time Galois Field GF(2^8) and Shamir's Secret Sharing engine in Rust"
+
+[dependencies]
+subtle = { version = "2.5", default-features = false }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
