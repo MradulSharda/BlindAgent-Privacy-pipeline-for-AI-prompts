@@ -1,4 +1,4 @@
-# 🛡️ BlindAgent: Zero-Leakage AI Pipeline with Mathematical Secret Sharing & Homomorphic Token Blinding
+#        BlindAgent: Zero-Leakage AI Pipeline with Mathematical Secret Sharing & Homomorphic Token Blinding
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Engine: C99 / Rust](https://img.shields.io/badge/Core-C99%20%7C%20Rust-orange.svg)](#cryptographic-engine)
