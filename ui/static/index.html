@@ -316,6 +316,30 @@
       }
     }
 
+    function updateProviderBadge(provider, model) {
+      const badge = document.getElementById('providerBadge');
+      if (!badge) return;
+      if (provider === 'gemini') {
+        badge.className = 'inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-emerald-300';
+        badge.innerHTML = `<i class="fa-solid fa-bolt mr-1.5 text-emerald-400"></i> Provider: Google Gemini (${model || 'Live'})`;
+      } else if (provider === 'openai') {
+        badge.className = 'inline-flex items-center px-2.5 py-1 rounded-full bg-sky-950/80 border border-sky-500/30 text-sky-300';
+        badge.innerHTML = `<i class="fa-solid fa-bolt mr-1.5 text-sky-400"></i> Provider: OpenAI (${model || 'Live'})`;
+      } else {
+        badge.className = 'inline-flex items-center px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-500/30 text-amber-300';
+        badge.innerHTML = '<i class="fa-solid fa-microchip mr-1.5 text-amber-400"></i> Provider: Local Simulator';
+      }
+    }
+
+    async function checkServerStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        updateProviderBadge(data.provider, data.active_model);
+      } catch (err) {}
+    }
+    checkServerStatus();
+
     async function runPipeline() {
       const prompt = document.getElementById('promptInput').value;
       const runBtn = document.getElementById('runBtn');
@@ -329,6 +353,8 @@
           body: JSON.stringify({ prompt })
         });
         const data = await res.json();
+
+        updateProviderBadge(data.provider, data.active_model);
 
         // Render Outputs
         document.getElementById('clientOutput').textContent = data.final_output;
