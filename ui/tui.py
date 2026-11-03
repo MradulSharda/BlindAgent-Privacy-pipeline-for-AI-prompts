@@ -103,7 +103,7 @@ def main():
     console.print("[bold]Select an example or enter a custom prompt:[/bold]")
     for i, ex in enumerate(default_examples, 1):
         console.print(f" [cyan][{i}][/cyan] {ex}")
-    console.print(" [cyan][c][/cyan] Custom user input\n [cyan][q][/cyan] Quit\n")
+    console.print(" [cyan][c][/cyan] Custom user input [dim](Tip: wrap any custom text in <secret>...</secret>)[/dim]\n [cyan][q][/cyan] Quit\n")
 
     while True:
         try:
