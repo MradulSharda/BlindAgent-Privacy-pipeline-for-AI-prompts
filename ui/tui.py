@@ -20,7 +20,7 @@ console = Console()
 
 def print_banner():
     banner = """
-[bold cyan]  ____  _ _          _    [/bold cyan][bold magenta]                         _   [/bold magenta]
+[bold cyan]  ____  _ _           _    [/bold cyan][bold magenta]                        _   [/bold magenta]
 [bold cyan] | __ )| (_)_ __   __| |   [/bold cyan][bold magenta]   /\\   __ _  ___ _ __ | |_ [/bold magenta]
 [bold cyan] |  _ \\| | | '_ \\ / _` |   [/bold cyan][bold magenta]  /  \\ / _` |/ _ \\ '_ \\| __|[/bold magenta]
 [bold cyan] | |_) | | | | | | (_| |   [/bold cyan][bold magenta] / /\\ \\ (_| |  __/ | | | |_ [/bold magenta]
