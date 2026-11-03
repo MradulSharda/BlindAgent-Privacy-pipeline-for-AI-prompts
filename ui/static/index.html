@@ -91,6 +91,10 @@
           </div>
         </div>
         <textarea id="promptInput" rows="3" class="w-full bg-cyber-bg border border-cyber-border rounded-lg p-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500 terminal-font" placeholder="Enter sensitive request, e.g. SQL query with SSN or master key..."></textarea>
+        <p class="text-[11px] text-gray-400 mt-1.5 flex items-center">
+          <i class="fa-solid fa-circle-info text-indigo-400 mr-1.5"></i>
+          <span>Tip: Wrap any arbitrary secret in <code class="text-indigo-300 bg-gray-800/80 px-1.5 py-0.5 rounded border border-gray-700 font-mono">&lt;secret&gt;your-secret-here&lt;/secret&gt;</code> to mathematically blind and split it!</span>
+        </p>
         
         <div class="flex items-center justify-between mt-3">
           <div class="text-xs text-gray-400 flex items-center space-x-4">
