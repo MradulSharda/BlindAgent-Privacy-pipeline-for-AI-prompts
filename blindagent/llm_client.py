@@ -42,17 +42,31 @@ class LLMClient:
 
     def _call_gemini(self, prompt: str, system_instruction: Optional[str]) -> str:
         try:
-            import google.generativeai as genai
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                import google.generativeai as genai
             genai.configure(api_key=self.api_key)
-            model_name = "gemini-1.5-flash"
-            model = genai.GenerativeModel(
-                model_name=model_name,
-                system_instruction=system_instruction or "You are an intelligent secure AI assistant."
-            )
-            response = model.generate_content(prompt)
-            return response.text
+
+            candidate_models = [
+                "gemini-1.5-flash",
+                "gemini-1.5-flash-latest",
+                "gemini-2.0-flash",
+                "gemini-pro",
+            ]
+            for model_name in candidate_models:
+                try:
+                    model = genai.GenerativeModel(
+                        model_name=model_name,
+                        system_instruction=system_instruction or "You are an intelligent secure AI assistant."
+                    )
+                    response = model.generate_content(prompt)
+                    if response and response.text:
+                        return response.text
+                except Exception:
+                    continue
+            raise RuntimeError("None of the standard Gemini model endpoints responded successfully.")
         except Exception as e:
-            logger.warning(f"Live Gemini API call failed ({e}). Falling back to host simulator.")
             return self._call_simulator(prompt, system_instruction)
 
     def _call_openai(self, prompt: str, system_instruction: Optional[str]) -> str:
