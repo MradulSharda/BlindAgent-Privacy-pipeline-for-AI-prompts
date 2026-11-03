@@ -11,7 +11,7 @@ from blindagent.pipeline import BlindPipeline
 
 
 def test_zero_plaintext_storage():
-    pipeline = BlindPipeline(sss_threshold=3, sss_total=5)
+    pipeline = BlindPipeline(sss_threshold=3, sss_total=5, provider="simulated_host")
     prompt = "Authorize transfer for master_key: TitaniumVaultSecret99! with amount $25,000."
     res = pipeline.execute(prompt)
 
@@ -30,7 +30,7 @@ def test_zero_plaintext_storage():
 
 
 def test_mathematical_cross_verification():
-    pipeline = BlindPipeline(sss_threshold=3, sss_total=5)
+    pipeline = BlindPipeline(sss_threshold=3, sss_total=5, provider="simulated_host")
     prompt = "Check status of SSN: 987-65-4321."
     pipeline.execute(prompt)
 
@@ -48,7 +48,7 @@ def test_mathematical_cross_verification():
 
 
 def test_share_corruption_fails_reconstruction():
-    pipeline = BlindPipeline(sss_threshold=3, sss_total=5)
+    pipeline = BlindPipeline(sss_threshold=3, sss_total=5, provider="simulated_host")
     prompt = "Access api_secret: SuperSecretToken12345."
     pipeline.execute(prompt)
 
