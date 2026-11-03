@@ -121,6 +121,9 @@ def main():
                 user_p = console.input("[bold green]Enter confidential prompt > [/bold green]")
                 if user_p.strip():
                     render_interaction(pipeline, user_p)
+            elif len(choice) > 3:
+                # Direct prompt entered without typing 'c' first
+                render_interaction(pipeline, choice)
             else:
                 console.print("[red]Invalid choice, try again.[/red]")
             console.print("\n" + "=" * 80 + "\n")
