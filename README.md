@@ -101,19 +101,23 @@ BlindAgent utilizes a zero-dependency, lightweight detection engine designed for
 ## 🚀 Quickstart Guide
 
 ### 🌐 Cloud LLM API Configuration
-BlindAgent communicates with cloud LLM host providers via official APIs. You can run it against live Google Gemini or OpenAI endpoints:
+BlindAgent communicates with cloud LLM host providers via official APIs. To connect to live Google Gemini or OpenAI endpoints:
+
+#### Recommended: Create a `.env` file (Persistent across terminal tabs)
+Create a `.env` file in the project root directory (this file is automatically protected by `.gitignore` so your API key will never be committed to Git):
 
 ```bash
-# Option A: Connect to Google Gemini API
-export GEMINI_API_KEY="your-gemini-api-key"
+# Connect to Google Gemini API (Recommended):
+echo 'GEMINI_API_KEY="your-gemini-api-key-here"' > .env
 
-# Option B: Connect to OpenAI API
-export OPENAI_API_KEY="your-openai-api-key"
-
-# Option C: Offline Evaluation
-# If no key is set, BlindAgent automatically utilizes its built-in
-# local cloud host simulator for instant zero-dependency evaluation.
+# Or connect to OpenAI API:
+echo 'OPENAI_API_KEY="your-openai-api-key-here"' > .env
 ```
+
+*(Alternatively, you can export it in your shell session with `export GEMINI_API_KEY="..."`, but creating a `.env` file is strongly recommended so new terminal tabs and background servers automatically load it without retyping).*
+
+#### Offline Evaluation Mode
+If no API key is provided, BlindAgent automatically utilizes its built-in local cloud host simulator for instant, zero-dependency offline evaluation.
 
 ### 1. Compile Native Cryptographic Engine
 Compile the C shared library and run the built-in mathematical test suite:
