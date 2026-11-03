@@ -40,12 +40,15 @@ class SSSCombineRequest(BaseModel):
 
 @app.get("/api/status")
 def get_status():
+    current_pipeline = BlindPipeline(sss_threshold=3, sss_total=5)
     return {
         "status": "online",
         "engine": engine_version(),
         "default_k": 3,
         "default_n": 5,
-        "provider": pipeline.llm.provider
+        "provider": current_pipeline.llm.provider,
+        "active_model": current_pipeline.llm.active_model,
+        "has_gemini_key": bool(current_pipeline.llm.api_key)
     }
 
 
@@ -81,6 +84,8 @@ def execute_pipeline(req: ExecuteRequest):
         "execution_time_ms": result.execution_time_ms,
         "metrics": result.metrics,
         "provider": result.provider_used,
+        "active_model": local_pipeline.llm.active_model,
+        "last_error": local_pipeline.llm.last_error,
         "vault": vault_dump
     }
 
@@ -118,6 +123,21 @@ if os.path.exists(_STATIC_DIR):
 
 
 def run_server(host: str = "127.0.0.1", port: int = 8000):
+    test_p = BlindPipeline(sss_threshold=3, sss_total=5)
+    print("\n=======================================================")
+    print("       BlindAgent Web Dashboard Server Starting        ")
+    print("=======================================================")
+    print(f"✔ Cryptographic Engine: {engine_version()}")
+    if test_p.llm.provider == "gemini":
+        k_disp = test_p.llm.api_key[:6] + "..." + test_p.llm.api_key[-4:] if test_p.llm.api_key else ""
+        print(f"✔ Cloud LLM Active: Google Gemini API (Live Mode | Key: {k_disp})")
+    elif test_p.llm.provider == "openai":
+        print("✔ Cloud LLM Active: OpenAI API (Live Mode)")
+    else:
+        print("ℹ Cloud LLM: Local Host Simulator (Offline)")
+        print("  To use live Gemini: export GEMINI_API_KEY=\"...\" or create a .env file")
+    print(f"🌐 Access Dashboard at: http://{host}:{port}")
+    print("=======================================================\n")
     import uvicorn
     uvicorn.run(app, host=host, port=port)
 
