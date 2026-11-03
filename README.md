@@ -80,6 +80,24 @@ The cloud provider gains **zero mathematical knowledge** of the secret.
 
 ---
 
+## 🔒 Secret Detection & The Universal `<secret>` Tag
+
+BlindAgent utilizes a zero-dependency, lightweight detection engine designed for instant portability without requiring judges to download gigabytes of model weights:
+
+1. **Automatic Pattern Recognition**: Automatically captures real-world API credentials (`AKIA...`, `sk-...`, `AIzaSy...`), credentials (`master_key: ...`, `password: ...`), national IDs (SSNs), credit cards, and monetary values.
+2. **The Universal `<secret>` Tag (Escape Hatch)**:
+   You can wrap **any arbitrary secret** in `<secret>...</secret>` tags regardless of format:
+   ```text
+   Authorize deployment using <secret>blue-kangaroo-vault-key-9988</secret> for cluster A.
+   ```
+   * The text inside `<secret>...</secret>` is immediately isolated.
+   * It is encrypted into a $\text{GF}(2^8)$ affine token (`[[BLIND_TOKEN_...:AFF8_...]]`) and split into $(k, n)$ Shamir polynomial shares.
+   * The cloud host receives only the ciphertext; the secret is recovered dynamically in the client enclave upon return.
+
+> **Production Note**: In enterprise environments, this hybrid scanner can be paired with an on-device local Small Language Model (SLM / Presidio) without altering any part of the underlying C/Rust cryptographic engine.
+
+---
+
 ## 🚀 Quickstart Guide
 
 ### 1. Compile Native Cryptographic Engine
@@ -93,6 +111,7 @@ make clean && make test
 PYTHONPATH=. python3 tests/test_crypto_math.py
 PYTHONPATH=. python3 tests/test_sss.py
 PYTHONPATH=. python3 tests/test_timing_sidechannel.py
+PYTHONPATH=. python3 tests/test_real_crypto_pipeline.py
 ```
 
 ### 3. Launch Terminal User Interface (TUI)
@@ -110,25 +129,12 @@ Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser!
 
 ---
 
-## 🧪 Hackathon Rubric Alignment
-
-| Rubric Requirement | How BlindAgent Fulfills It | Points Captured |
-| :--- | :--- | :--- |
-| **LLM Host APIs** | Integrates Google Gemini (`google-generativeai`), OpenAI, and an automated host simulator that logs incoming network wires. | **Core Requirement** |
-| **Master Key Unknown to Agent** | Master key never leaves the client enclave; cloud LLM receives only algebraic blinded tokens and SSS polynomial shares. | **Core Requirement** |
-| **Low-Level Language (Rust / C)** | Core finite field arithmetic and SSS engine implemented in native C99 (`core/crypto_engine.c`) and Rust (`rust_core/src/lib.rs`). | **EXTRA POINT** |
-| **Visual Aesthetic (TUI or Loopback Web)** | Provides **BOTH**: interactive Rich TUI (`ui/tui.py`) and modern dark-mode loopback web dashboard (`ui/server.py` on `localhost:8000`). | **STRONG POINT** |
-| **Mathematical Formulation & LaTeX** | In-depth academic document with proofs (`docs/MATHEMATICS.md`). | **Full Score** |
-| **Video Demonstration Ready** | Complete recording script and video guide (`docs/DEMO_WALKTHROUGH.md`). | **Submission Ready** |
-
----
-
 ## 📁 Repository Structure
 
 ```
 blindagent/
 ├── Makefile                          # Native build system for C shared library
-├── README.md                         # Project documentation and submission overview
+├── README.md                         # Project documentation and architectural overview
 ├── core/                             # Low-level C cryptographic engine
 │   ├── crypto_engine.h               # GF(2^8) & SSS API header
 │   ├── crypto_engine.c               # Constant-time arithmetic & polynomial solver
@@ -150,8 +156,8 @@ blindagent/
 ├── tests/
 │   ├── test_crypto_math.py           # Finite field axioms validation
 │   ├── test_sss.py                   # Threshold (k, n) security tests
-│   └── test_timing_sidechannel.py    # Constant-time empirical benchmark
+│   ├── test_timing_sidechannel.py    # Constant-time empirical benchmark
+│   └── test_real_crypto_pipeline.py  # End-to-end zero-knowledge integrity suite
 └── docs/
-    ├── MATHEMATICS.md                # Academic security proofs & LaTeX formulas
-    └── DEMO_WALKTHROUGH.md           # Video recording script for YouTube
+    └── MATHEMATICS.md                # Academic security proofs & LaTeX formulas
 ```
