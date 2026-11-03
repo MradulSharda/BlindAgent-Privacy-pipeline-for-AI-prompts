@@ -133,7 +133,7 @@ class LLMClient:
 
     def _extract_token(self, prompt: str) -> str:
         import re
-        m = re.search(r"\[\[BLIND_TOKEN_\d+_[A-Z_]+\]\]", prompt)
+        m = re.search(r"\[\[BLIND_TOKEN_\d+_[A-Z_]+(?::AFF8_[0-9a-fA-F]+)?\]\]", prompt)
         if m:
             return m.group(0)
         return "BLIND_TOKEN_REF"

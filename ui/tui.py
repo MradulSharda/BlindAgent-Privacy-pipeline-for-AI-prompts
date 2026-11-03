@@ -64,9 +64,11 @@ def render_interaction(pipeline: BlindPipeline, prompt: str):
 
     for token, entity in pipeline.blinder.vault.items():
         sample_share = entity.shares[0] if entity.shares else "N/A"
+        # Dynamically reconstruct secret via C engine's Lagrange interpolation
+        reconstructed = entity.reconstruct_secret(pipeline.blinder.sss)
         table.add_row(
-            token,
-            entity.original_value,
+            token if len(token) <= 45 else token[:42] + "...]]",
+            reconstructed,
             sample_share[:36] + "...",
             "[bold green]0% LEAKAGE (SECURE)[/bold green]"
         )

@@ -66,7 +66,8 @@ def execute_pipeline(req: ExecuteRequest):
         vault_dump.append({
             "token": token,
             "entity_type": entity.entity_type,
-            "original_value": entity.original_value,
+            "original_value": entity.reconstruct_secret(local_pipeline.blinder.sss),
+            "ciphertext_hex": entity.ciphertext_hex,
             "alpha": entity.blind_alpha,
             "beta": entity.blind_beta,
             "shares": entity.shares
