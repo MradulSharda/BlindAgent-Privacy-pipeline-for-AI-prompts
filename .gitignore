@@ -6,4 +6,6 @@ __pycache__/
 test_engine
 .DS_Store
 target/
+.env
+.env.*
 docs/DEMO_WALKTHROUGH.md

@@ -20,7 +20,7 @@ console = Console()
 
 def print_banner():
     banner = """
-[bold cyan]  ____  _ _           _    [/bold cyan][bold magenta]                    _   [/bold magenta]
+[bold cyan]  ____  _ _           _    [/bold cyan][bold magenta]                          _   [/bold magenta]
 [bold cyan] | __ )| (_)_ __   __| |   [/bold cyan][bold magenta]   /\\   __ _  ___ _ __ | |_ [/bold magenta]
 [bold cyan] |  _ \\| | | '_ \\ / _` |   [/bold cyan][bold magenta]  /  \\ / _` |/ _ \\ '_ \\| __|[/bold magenta]
 [bold cyan] | |_) | | | | | | (_| |   [/bold cyan][bold magenta] / /\\ \\ (_| |  __/ | | | |_ [/bold magenta]
@@ -87,12 +87,23 @@ def render_interaction(pipeline: BlindPipeline, prompt: str):
     )
     console.print(Panel(metrics_summary, title="[bold cyan]Mathematical Verification Metrics[/bold cyan]", border_style="cyan"))
 
+    if getattr(pipeline.llm, "last_error", None):
+        console.print(f"[dim yellow]⚠ Live Gemini API note: {pipeline.llm.last_error} (fell back to host simulator)[/dim yellow]")
+
 
 def main():
     print_banner()
     console.print("[dim]Initializing C cryptographic engine (libblindcrypto.dylib)...[/dim]")
     pipeline = BlindPipeline(sss_threshold=3, sss_total=5)
-    console.print("[bold green]✔ C Engine Active. Constant-time GF(2^8) ready.[/bold green]\n")
+    console.print("[bold green]✔ C Engine Active. Constant-time GF(2^8) ready.[/bold green]")
+
+    if pipeline.llm.provider == "gemini":
+        k_disp = pipeline.llm.api_key[:6] + "..." + pipeline.llm.api_key[-4:] if pipeline.llm.api_key else ""
+        console.print(f"[bold green]✔ Cloud LLM Active: Google Gemini API (Live Mode | Key: {k_disp})[/bold green]\n")
+    elif pipeline.llm.provider == "openai":
+        console.print("[bold green]✔ Cloud LLM Active: OpenAI API (Live Mode)[/bold green]\n")
+    else:
+        console.print("[bold yellow]ℹ Cloud LLM: Local Host Simulator[/bold yellow] [dim](To use live Gemini: export GEMINI_API_KEY=\"...\" or create a .env file)[/dim]\n")
 
     default_examples = [
         "Please generate an SQL audit query for employee SSN: 123-45-6789 and master_key: SuperSecretMasterPassword! with balance $50,000.",

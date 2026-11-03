@@ -11,12 +11,38 @@ from typing import Dict, Any, Optional
 logger = logging.getLogger("BlindAgent.LLM")
 
 
+def _load_dotenv():
+    """Load variables from .env or .env.local if present in project root."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for env_name in [".env", ".env.local"]:
+        env_path = os.path.join(root, env_name)
+        if os.path.exists(env_path):
+            try:
+                with open(env_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#") and "=" in line:
+                            k, v = line.split("=", 1)
+                            k = k.strip()
+                            v = v.strip().strip("'\"")
+                            if k and k not in os.environ:
+                                os.environ[k] = v
+            except Exception:
+                pass
+
+
+_load_dotenv()
+
+
 class LLMClient:
     def __init__(self, provider: str = "auto", api_key: Optional[str] = None):
+        _load_dotenv()
         self.provider = provider
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         self.openai_key = os.environ.get("OPENAI_API_KEY")
         self.last_host_received_payload: Optional[str] = None
+        self.last_error: Optional[str] = None
+        self.active_model: Optional[str] = None
 
         if self.provider == "auto":
             if self.api_key:
@@ -32,6 +58,7 @@ class LLMClient:
         Records exactly what leaves the local machine and lands on the provider's server.
         """
         self.last_host_received_payload = prompt
+        self.last_error = None
 
         if self.provider == "gemini" and self.api_key:
             return self._call_gemini(prompt, system_instruction)
@@ -41,6 +68,7 @@ class LLMClient:
             return self._call_simulator(prompt, system_instruction)
 
     def _call_gemini(self, prompt: str, system_instruction: Optional[str]) -> str:
+        last_err = None
         try:
             import warnings
             with warnings.catch_warnings():
@@ -52,6 +80,7 @@ class LLMClient:
                 "gemini-1.5-flash",
                 "gemini-1.5-flash-latest",
                 "gemini-2.0-flash",
+                "gemini-2.5-flash",
                 "gemini-pro",
             ]
             for model_name in candidate_models:
@@ -62,11 +91,14 @@ class LLMClient:
                     )
                     response = model.generate_content(prompt)
                     if response and response.text:
+                        self.active_model = model_name
                         return response.text
-                except Exception:
+                except Exception as model_err:
+                    last_err = model_err
                     continue
-            raise RuntimeError("None of the standard Gemini model endpoints responded successfully.")
+            raise RuntimeError(f"All Gemini model endpoints failed. Last error: {last_err}")
         except Exception as e:
+            self.last_error = str(e)
             return self._call_simulator(prompt, system_instruction)
 
     def _call_openai(self, prompt: str, system_instruction: Optional[str]) -> str:
