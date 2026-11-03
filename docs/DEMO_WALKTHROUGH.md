@@ -49,10 +49,13 @@ Type `1` to select Preset 1:
 ```
 Please generate an SQL audit query for employee SSN: 123-45-6789 and master_key: SuperSecretMasterPassword! with balance $50,000.
 ```
+*(Or type `3` to demonstrate wrapping arbitrary confidential text in `<secret>ProjectTitanium-AccessCode-900</secret>`)*
+
 **Voiceover:**
 > *"Notice the dual-pane inspector:*
 > *On the left is our Local Client Enclave. We see the original plaintext prompt and the final decrypted SQL query.*
 > *On the right is what the cloud host provider actually receives over the wire. Notice that the SSN, master key, and financial balance are replaced with blinded algebraic tokens. Furthermore, the master key is decomposed into $GF(2^8)$ polynomial shares.*
+> *Users can also wrap ANY custom secret with `<secret>...</secret>` tags for instant zero-knowledge protection.*
 > *Even if the cloud provider logs every single byte of this request, they have zero mathematical knowledge of the master key!"*
 
 ---
