@@ -34,6 +34,17 @@ def _load_dotenv():
 _load_dotenv()
 
 
+DEFAULT_SYSTEM_INSTRUCTION = (
+    "You are an intelligent AI agent operating in a Zero-Knowledge Privacy-Preserving Enclave. "
+    "All user inputs have been pre-processed: sensitive variables, identifiers, and keys have been converted into "
+    "non-sensitive mathematical handles of the format [[BLIND_TOKEN_...]]. "
+    "These tokens represent synthetic, blinded handles. "
+    "Fulfill the user's instructions (such as generating SQL queries, summaries, or reports) by referencing and using "
+    "these exact [[BLIND_TOKEN_...]] placeholders directly in your output. "
+    "Always preserve the exact [[BLIND_TOKEN_...]] strings so the local client enclave can map them securely."
+)
+
+
 class LLMClient:
     def __init__(self, provider: str = "auto", api_key: Optional[str] = None):
         _load_dotenv()
@@ -59,13 +70,14 @@ class LLMClient:
         """
         self.last_host_received_payload = prompt
         self.last_error = None
+        instruction = system_instruction or DEFAULT_SYSTEM_INSTRUCTION
 
         if self.provider == "gemini" and self.api_key:
-            return self._call_gemini(prompt, system_instruction)
+            return self._call_gemini(prompt, instruction)
         elif self.provider == "openai" and self.openai_key:
-            return self._call_openai(prompt, system_instruction)
+            return self._call_openai(prompt, instruction)
         else:
-            return self._call_simulator(prompt, system_instruction)
+            return self._call_simulator(prompt, instruction)
 
     def _call_gemini(self, prompt: str, system_instruction: Optional[str]) -> str:
         last_err = None
@@ -111,7 +123,7 @@ class LLMClient:
             body = {
                 "model": "gpt-4o-mini",
                 "messages": [
-                    {"role": "system", "content": system_instruction or "You are an intelligent assistant."},
+                    {"role": "system", "content": system_instruction or DEFAULT_SYSTEM_INSTRUCTION},
                     {"role": "user", "content": prompt}
                 ]
             }
