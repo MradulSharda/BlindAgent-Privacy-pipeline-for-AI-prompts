@@ -6,8 +6,14 @@
 #include "crypto_engine.h"
 #include <stdlib.h>
 #include <string.h>
+
+#if defined(_WIN32)
+#include <windows.h>
+#include <wincrypt.h>
+#else
 #include <fcntl.h>
 #include <unistd.h>
+#endif
 
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <stdlib.h>
@@ -31,6 +37,14 @@ int secure_random_bytes(uint8_t *buf, size_t len) {
 #if defined(HAVE_ARC4RANDOM)
     arc4random_buf(buf, len);
     return 0;
+#elif defined(_WIN32)
+    HCRYPTPROV hCryptProv;
+    if (!CryptAcquireContext(&hCryptProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT)) {
+        return -1;
+    }
+    BOOL success = CryptGenRandom(hCryptProv, (DWORD)len, (BYTE *)buf);
+    CryptReleaseContext(hCryptProv, 0);
+    return success ? 0 : -1;
 #else
     int fd = open("/dev/urandom", O_RDONLY);
     if (fd < 0) return -1;

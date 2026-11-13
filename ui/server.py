@@ -3,6 +3,17 @@ FastAPI Server hosting loopback web dashboard on http://127.0.0.1:8000
 """
 
 import os
+import sys
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -14,8 +25,8 @@ from blindagent.crypto_bridge import engine_version
 
 app = FastAPI(title="BlindAgent Loopback Dashboard")
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+_REACT_DIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "react", "dist")
 
 pipeline = BlindPipeline(sss_threshold=3, sss_total=5)
 
@@ -112,11 +123,26 @@ def sss_combine_endpoint(req: SSSCombineRequest):
 
 @app.get("/")
 def serve_index():
+    react_index = os.path.join(_REACT_DIST, "index.html")
+    if os.path.exists(react_index):
+        return FileResponse(react_index)
     index_path = os.path.join(_STATIC_DIR, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return {"message": "Static frontend not found at " + index_path}
+    return {"message": "Frontend not found at " + index_path}
 
+
+@app.get("/legacy")
+def serve_legacy():
+    index_path = os.path.join(_STATIC_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "Legacy frontend not found at " + index_path}
+
+
+react_assets = os.path.join(_REACT_DIST, "assets")
+if os.path.exists(react_assets):
+    app.mount("/assets", StaticFiles(directory=react_assets), name="react-assets")
 
 if os.path.exists(_STATIC_DIR):
     app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")

@@ -12,6 +12,7 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _LIB_CANDIDATES = [
     os.path.join(_ROOT, "libblindcrypto.dylib"),
     os.path.join(_ROOT, "libblindcrypto.so"),
+    os.path.join(_ROOT, "libblindcrypto.dll"),
     os.path.join(_ROOT, "target", "release", "libblindagent_crypto_core.dylib"),
     os.path.join(_ROOT, "target", "release", "libblindagent_crypto_core.so"),
 ]

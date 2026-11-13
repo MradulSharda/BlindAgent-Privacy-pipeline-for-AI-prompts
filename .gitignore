@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 *.dylib
 *.so
+*.dll
 *.o
 test_engine
 .DS_Store
