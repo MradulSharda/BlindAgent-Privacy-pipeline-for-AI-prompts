@@ -230,38 +230,43 @@ export const PlaygroundView: React.FC = () => {
 
               {/* Table Headers */}
               <div className="grid grid-cols-12 gap-2 text-[11px] font-mono font-semibold text-[#64748B]">
-                <div className="col-span-2">TOKEN ID</div>
-                <div className="col-span-3">ROLE / DETECTOR</div>
-                <div className="col-span-3">ORIGINAL PLAINTEXT</div>
-                <div className="col-span-3">BLINDED WIRE TOKEN</div>
-                <div className="col-span-1 text-right">ENCLAVE</div>
+                <div className="col-span-2 min-w-0 truncate">TOKEN ID</div>
+                <div className="col-span-3 min-w-0 truncate">ROLE / DETECTOR</div>
+                <div className="col-span-3 min-w-0 truncate">ORIGINAL PLAINTEXT</div>
+                <div className="col-span-3 min-w-0 truncate">BLINDED WIRE TOKEN</div>
+                <div className="col-span-1 min-w-0 text-right">ENCLAVE</div>
               </div>
 
               {/* Table Rows */}
               <div className="space-y-3">
                 {result && result.vault && result.vault.length > 0 ? (
-                  result.vault.map((v, idx) => (
-                    <div key={idx} className="pt-2 border-t border-[#E2E8F0] grid grid-cols-12 gap-2 items-center text-[12px] font-mono">
-                      <div className="col-span-2 font-bold text-[#1B1D54]">{v.token.split(':')[0].replace('[[', '')}</div>
-                      <div className="col-span-3 text-[#111827]">
-                        <div className="font-semibold">{v.entity_type}</div>
-                        {v.detector && (
-                          <div className="text-[10px] text-[#64748B] tracking-tighter truncate" title={v.detector}>
-                            via {v.detector}
-                          </div>
-                        )}
+                  result.vault.map((v, idx) => {
+                    const cleanTokenId = v.token.match(/BLIND_TOKEN_\d+/)?.[0] || `BLIND_TOKEN_${idx + 1}`;
+                    return (
+                      <div key={idx} className="pt-2 border-t border-[#E2E8F0] grid grid-cols-12 gap-2 items-center text-[12px] font-mono">
+                        <div className="col-span-2 min-w-0 font-bold text-[#1B1D54] truncate" title={cleanTokenId}>
+                          {cleanTokenId}
+                        </div>
+                        <div className="col-span-3 min-w-0 text-[#111827]">
+                          <div className="font-semibold truncate" title={v.entity_type}>{v.entity_type}</div>
+                          {v.detector && (
+                            <div className="text-[10px] text-[#64748B] tracking-tight truncate" title={v.detector}>
+                              via {v.detector}
+                            </div>
+                          )}
+                        </div>
+                        <div className="col-span-3 min-w-0 font-semibold text-[#0D7A5F] truncate" title={v.original_value}>
+                          {v.original_value}
+                        </div>
+                        <div className="col-span-3 min-w-0 font-semibold text-[#DC2626] truncate text-[11px]" title={v.token}>
+                          {v.token}
+                        </div>
+                        <div className="col-span-1 min-w-0 text-right text-[11px] font-bold text-[#0D7A5F]">
+                          SHIELDED
+                        </div>
                       </div>
-                      <div className="col-span-3 font-semibold text-[#0D7A5F] truncate" title={v.original_value}>
-                        {v.original_value}
-                      </div>
-                      <div className="col-span-3 font-semibold text-[#DC2626] truncate" title={v.token}>
-                        {v.token}
-                      </div>
-                      <div className="col-span-1 text-right text-[11px] font-bold text-[#0D7A5F]">
-                        SHIELDED
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="pt-2 border-t border-[#E2E8F0] text-[12px] font-mono text-[#64748B] py-3 text-center">
                     No explicit credentials or sensitive tokens detected in prompt.
@@ -278,7 +283,7 @@ export const PlaygroundView: React.FC = () => {
                   <div className="text-[11px] font-mono font-bold text-[#DC2626] uppercase">
                     HOST WIRE PAYLOAD (CLOUD LOG)
                   </div>
-                  <div className="mt-1 p-2.5 bg-slate-50 border border-[#E2E8F0] rounded-none font-mono text-[11px] text-[#111827] whitespace-pre-wrap">
+                  <div className="mt-1 p-2.5 bg-slate-50 border border-[#E2E8F0] rounded-none font-mono text-[11px] text-[#111827] whitespace-pre-wrap break-all">
                     {result ? result.wire_payload : ''}
                   </div>
                 </div>
@@ -289,7 +294,7 @@ export const PlaygroundView: React.FC = () => {
                   <div className="text-[11px] font-mono font-bold text-[#0D7A5F] uppercase">
                     CLIENT ENCLAVE OUTPUT (RESTORED)
                   </div>
-                  <div className="mt-1 p-2.5 bg-slate-50 border border-[#E2E8F0] rounded-none font-mono text-[11px] text-[#1B1D54] whitespace-pre-wrap">
+                  <div className="mt-1 p-2.5 bg-slate-50 border border-[#E2E8F0] rounded-none font-mono text-[11px] text-[#1B1D54] whitespace-pre-wrap break-words">
                     {result ? result.final_output : ''}
                   </div>
                 </div>
