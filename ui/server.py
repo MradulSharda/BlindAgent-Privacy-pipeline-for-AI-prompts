@@ -80,6 +80,7 @@ def execute_pipeline(req: ExecuteRequest):
         vault_dump.append({
             "token": token,
             "entity_type": entity.entity_type,
+            "detector": getattr(entity, "detector", "MULTI_DETECTOR"),
             "original_value": entity.reconstruct_secret(local_pipeline.blinder.sss),
             "ciphertext_hex": entity.ciphertext_hex,
             "alpha": entity.blind_alpha,

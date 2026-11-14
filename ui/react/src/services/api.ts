@@ -11,6 +11,7 @@ export interface ServerStatus {
 export interface VaultEntity {
   token: string;
   entity_type: string;
+  detector?: string;
   original_value: string;
   ciphertext_hex?: string;
   alpha?: number;
@@ -22,6 +23,8 @@ export interface PipelineMetrics {
   entities_protected: number;
   blinded_entropy_bits: number;
   characters_shielded?: number;
+  detectors_active?: string[];
+  detectors_triggered?: string[];
 }
 
 export interface ExecuteResponse {
@@ -99,8 +102,8 @@ export async function combineShares(shares: string[], k: number = 3): Promise<SS
     body: JSON.stringify({ shares, k }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: 'Reconstruction failed' }));
-    throw new Error(err.detail || 'Reconstruction failed');
+    const err = await res.json().catch(() => ({ detail: 'Combine failed' }));
+    throw new Error(err.detail || 'Combine failed');
   }
   return res.json();
 }

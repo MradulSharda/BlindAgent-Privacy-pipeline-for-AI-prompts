@@ -16,6 +16,11 @@ const PRESETS = [
     id: 3,
     name: 'TAGGED SECRET',
     prompt: 'Authorize system transfer for <secret>TOP_SECRET_VAULT_KEY_007</secret> with transaction limit $250,000.'
+  },
+  {
+    id: 4,
+    name: 'ENTROPY / MARKOV / CRF TEST',
+    prompt: 'User with auth_token 9f8b2c4e1a7d6e3b and password xK9#mQ2! requested access via bearer AIzaSyD988223311AABBC-998811.'
   }
 ];
 
@@ -80,8 +85,7 @@ export const PlaygroundView: React.FC = () => {
               AI PIPELINE.
             </h1>
             <p className="font-['Inter_Tight'] text-[15px] text-[#4B5563] leading-relaxed max-w-[480px]">
-              Local client enclave. Prompts are blinded with ephemeral tokens<br className="hidden sm:inline" />
-              and split via GF(2^8) SSS before host cloud transit.
+              Local client enclave. Multi-layer mathematical detection (RegEx, Shannon Entropy, CRF, Markov N-Gram) with GF(2^8) SSS blinding before cloud transit.
             </p>
           </div>
 
@@ -115,7 +119,6 @@ export const PlaygroundView: React.FC = () => {
                 value={prompt}
                 onChange={(e) => {
                   setPrompt(e.target.value);
-                  // When user edits text manually, clear prior result so it stays in standby
                   if (selectedPreset !== 0) setSelectedPreset(0);
                   if (result !== null) setResult(null);
                 }}
@@ -127,30 +130,35 @@ export const PlaygroundView: React.FC = () => {
           </div>
 
           {/* Parameters Row */}
-          <div className="flex items-center space-x-6 text-[12px] font-mono font-bold text-[#1B1D54]">
-            <div className="flex items-center space-x-1.5">
-              <span>THRESHOLD (K):</span>
-              <input
-                type="number"
-                min={2}
-                max={10}
-                value={threshold}
-                onChange={(e) => setThreshold(parseInt(e.target.value) || 3)}
-                className="w-8 text-center border-b border-[#1B1D54] bg-transparent focus:outline-none"
-              />
+          <div className="space-y-2 text-[12px] font-mono font-bold text-[#1B1D54]">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-1.5">
+                <span>THRESHOLD (K):</span>
+                <input
+                  type="number"
+                  min={2}
+                  max={10}
+                  value={threshold}
+                  onChange={(e) => setThreshold(parseInt(e.target.value) || 3)}
+                  className="w-8 text-center border-b border-[#1B1D54] bg-transparent focus:outline-none"
+                />
+              </div>
+              <div className="flex items-center space-x-1.5">
+                <span>TOTAL (N):</span>
+                <input
+                  type="number"
+                  min={2}
+                  max={10}
+                  value={totalShares}
+                  onChange={(e) => setTotalShares(parseInt(e.target.value) || 5)}
+                  className="w-8 text-center border-b border-[#1B1D54] bg-transparent focus:outline-none"
+                />
+              </div>
+              <span className="text-[#0D7A5F]">C CONSTANT-TIME</span>
             </div>
-            <div className="flex items-center space-x-1.5">
-              <span>TOTAL (N):</span>
-              <input
-                type="number"
-                min={2}
-                max={10}
-                value={totalShares}
-                onChange={(e) => setTotalShares(parseInt(e.target.value) || 5)}
-                className="w-8 text-center border-b border-[#1B1D54] bg-transparent focus:outline-none"
-              />
+            <div className="text-[11px] text-[#2563EB] font-mono">
+              SCANNER: 4 ENSEMBLE DETECTORS (REGEX + ENTROPY + CRF + MARKOV)
             </div>
-            <span className="text-[#0D7A5F]">C CONSTANT-TIME ACTIVE</span>
           </div>
 
           {/* Action Buttons (Square Inverted - Penpot style) */}
@@ -204,8 +212,8 @@ export const PlaygroundView: React.FC = () => {
                 </div>
                 <p className="font-['Inter_Tight'] text-[13px] text-[#64748B] leading-relaxed">
                   {prompt.trim()
-                    ? 'Prompt input detected. Click \'EXECUTE\' to evaluate Galois Field GF(2^8) blinding and transmit to cloud model.'
-                    : 'Select a preset above or enter a prompt with sensitive credentials to inspect real-time Galois Field GF(2^8) blinding.'}
+                    ? 'Prompt input detected. Click \'EXECUTE\' to evaluate 4-layer detection (RegEx, Entropy, CRF, Markov) and GF(2^8) blinding.'
+                    : 'Select a preset above or enter a prompt with sensitive credentials to inspect real-time multi-detector blinding.'}
                 </p>
               </div>
             </div>
@@ -223,8 +231,8 @@ export const PlaygroundView: React.FC = () => {
               {/* Table Headers */}
               <div className="grid grid-cols-12 gap-2 text-[11px] font-mono font-semibold text-[#64748B]">
                 <div className="col-span-2">TOKEN ID</div>
-                <div className="col-span-2">ROLE / TYPE</div>
-                <div className="col-span-4">ORIGINAL PLAINTEXT</div>
+                <div className="col-span-3">ROLE / DETECTOR</div>
+                <div className="col-span-3">ORIGINAL PLAINTEXT</div>
                 <div className="col-span-3">BLINDED WIRE TOKEN</div>
                 <div className="col-span-1 text-right">ENCLAVE</div>
               </div>
@@ -234,12 +242,19 @@ export const PlaygroundView: React.FC = () => {
                 {result && result.vault && result.vault.length > 0 ? (
                   result.vault.map((v, idx) => (
                     <div key={idx} className="pt-2 border-t border-[#E2E8F0] grid grid-cols-12 gap-2 items-center text-[12px] font-mono">
-                      <div className="col-span-2 font-bold text-[#1B1D54]">{v.token}</div>
-                      <div className="col-span-2 text-[#111827]">{v.entity_type}</div>
-                      <div className="col-span-4 font-semibold text-[#0D7A5F] truncate" title={v.original_value}>
+                      <div className="col-span-2 font-bold text-[#1B1D54]">{v.token.split(':')[0].replace('[[', '')}</div>
+                      <div className="col-span-3 text-[#111827]">
+                        <div className="font-semibold">{v.entity_type}</div>
+                        {v.detector && (
+                          <div className="text-[10px] text-[#64748B] tracking-tighter truncate" title={v.detector}>
+                            via {v.detector}
+                          </div>
+                        )}
+                      </div>
+                      <div className="col-span-3 font-semibold text-[#0D7A5F] truncate" title={v.original_value}>
                         {v.original_value}
                       </div>
-                      <div className="col-span-3 font-semibold text-[#DC2626] truncate">
+                      <div className="col-span-3 font-semibold text-[#DC2626] truncate" title={v.token}>
                         {v.token}
                       </div>
                       <div className="col-span-1 text-right text-[11px] font-bold text-[#0D7A5F]">
@@ -288,7 +303,7 @@ export const PlaygroundView: React.FC = () => {
                 <span>SHIELDED: {result ? result.metrics.entities_protected : 0} ENTITIES</span>
                 <span>ENTROPY: {result ? result.metrics.blinded_entropy_bits : 0} BITS</span>
                 <span>LATENCY: {result ? result.execution_time_ms : 0} MS</span>
-                <span>KEY LEAK: 0.00% (NONE)</span>
+                <span>DETECTORS: 4 ACTIVE (REGEX + ENTROPY + CRF + MARKOV)</span>
               </div>
             </div>
           )}

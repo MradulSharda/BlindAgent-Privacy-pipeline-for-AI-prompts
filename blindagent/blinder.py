@@ -1,8 +1,14 @@
 """
-Semantic Entity Detection, Homomorphic Affine Blinding, and SSS Enclave Isolation.
+Multi-Paradigm Semantic Entity Detection, Homomorphic Affine Blinding, and SSS Enclave Isolation.
 Replaces sensitive parameters with mathematically blinded GF(2^8) ciphertexts.
 The master key is NEVER stored in plaintext in the client vault; it is stored strictly
 as (k, n) Shamir polynomial shares and reconstructed on-the-fly via C Lagrange interpolation.
+
+Detection combines 4 independent mathematical layers:
+1. Deterministic / RegEx & Explicit Enclave Tags (<secret>...</secret>, API keys, SSN, Credit Cards, etc.)
+2. Sliding-Window Shannon Information Entropy (H(X))
+3. Linear-Chain CRF / Probabilistic Sequence Tagger (Contextual features + morphology)
+4. Character N-Gram Markov Language Model (Perplexity Anomaly Outliers)
 """
 
 import re
@@ -11,6 +17,7 @@ from typing import Dict, List, Tuple, Any
 from dataclasses import dataclass
 from blindagent.crypto_bridge import blind_affine, unblind_affine, get_secure_random
 from blindagent.sss import ShamirSecretSharing, calculate_entropy
+from blindagent.detectors import MultiDetectorEnsemble, RegexDetector, DetectedSpan
 
 
 @dataclass
@@ -21,6 +28,7 @@ class BlindedEntity:
     blind_beta: int
     ciphertext_hex: str
     shares: List[str]  # (k, n) Shamir's Secret Sharing polynomial shares in GF(2^8)
+    detector: str = "MULTI_DETECTOR"
 
     def reconstruct_secret(self, sss: ShamirSecretSharing) -> str:
         """
@@ -40,25 +48,14 @@ class BlindedEntity:
 
 
 class SemanticBlinder:
-    PATTERNS = [
-        # Explicit tag <secret>...</secret>
-        (r"<secret>(.*?)</secret>", "EXPLICIT_SECRET", True),
-        # API Keys (AWS, OpenAI, Gemini, GitHub)
-        (r"\b(?:sk-[a-zA-Z0-9]{20,}|AIzaSy[a-zA-Z0-9_\-]{33}|AKIA[0-9A-Z]{16})\b", "API_KEY", False),
-        # Master Key or Passwords assignments
-        (r"(?i)\b(?:master_key|api_secret|password|db_pass)\s*[:=]\s*['\"]?([A-Za-z0-9!@#$%^&*_\-]+)['\"]?", "MASTER_SECRET", False),
-        # SSN
-        (r"\b\d{3}-\d{2}-\d{4}\b", "NATIONAL_ID", False),
-        # Credit Card (13-16 digits with dashes or spaces)
-        (r"\b(?:\d{4}[ -]?){3}\d{4}\b", "PAYMENT_CARD", False),
-        # Financial amounts
-        (r"\$\d+(?:,\d{3})*(?:\.\d{2})?", "FINANCIAL_VALUE", False),
-    ]
+    # Preserved for backward compatibility
+    PATTERNS = RegexDetector.PATTERNS
 
     def __init__(self, sss_threshold: int = 3, sss_total: int = 5):
         self.sss = ShamirSecretSharing(threshold=sss_threshold, total_shares=sss_total)
         self.vault: Dict[str, BlindedEntity] = {}
         self.counter = 0
+        self.ensemble = MultiDetectorEnsemble()
 
     def reset_vault(self):
         self.vault.clear()
@@ -66,59 +63,71 @@ class SemanticBlinder:
 
     def blind_prompt(self, user_prompt: str) -> Tuple[str, Dict[str, Any]]:
         """
-        Blinds all sensitive entities in user_prompt using real GF(2^8) affine encryption
+        Passes the entire prompt through all 4 detection layers:
+        1. Deterministic / RegEx & Explicit Tags
+        2. Sliding-Window Shannon Information Entropy
+        3. Linear-Chain CRF / Probabilistic Sequence Tagger
+        4. Character N-Gram Markov Model
+        Merges all identified spans and blinds them using real GF(2^8) affine encryption
         and Shamir's Secret Sharing. Plaintext secrets are NOT retained in the vault.
         """
         self.reset_vault()
+        
+        # Scan entire prompt through all 4 detectors and merge overlapping spans
+        detected_spans = self.ensemble.scan_prompt(user_prompt)
+        
+        # Sort descending by start offset to replace tokens safely from right to left
+        detected_spans.sort(key=lambda s: s.start, reverse=True)
+
         transformed = user_prompt
         entities_found = []
 
-        for regex_pat, entity_type, is_explicit in self.PATTERNS:
-            def replacer(match):
-                raw_match = match.group(0)
-                if is_explicit or (match.lastindex and match.lastindex >= 1):
-                    secret_val = match.group(1)
-                else:
-                    secret_val = raw_match
+        for s in detected_spans:
+            raw_segment = user_prompt[s.start : s.end]
+            
+            # Check if explicit <secret> tag envelope
+            m_exp = re.match(r"^<secret>(.*?)</secret>$", raw_segment, flags=re.DOTALL)
+            if m_exp:
+                secret_val = m_exp.group(1)
+            else:
+                secret_val = raw_segment
 
-                self.counter += 1
+            if not secret_val:
+                continue
 
-                # 1. Sample secure random parameters for GF(2^8) Affine Blinding
-                rand_bytes = get_secure_random(2)
-                alpha = rand_bytes[0] | 1  # ensure odd/invertible in GF(2^8)
-                beta = rand_bytes[1]
+            self.counter += 1
 
-                # 2. Execute real GF(2^8) Affine Encryption in C
-                secret_bytes = secret_val.encode("utf-8")
-                ciphertext = blind_affine(secret_bytes, alpha, beta)
-                ciphertext_hex = ciphertext.hex()
+            # 1. Sample secure random parameters for GF(2^8) Affine Blinding
+            rand_bytes = get_secure_random(2)
+            alpha = rand_bytes[0] | 1  # ensure odd/invertible in GF(2^8)
+            beta = rand_bytes[1]
 
-                # 3. Execute real (k, n) Shamir's Secret Sharing in C
-                shares = self.sss.split_text(secret_val)
+            # 2. Execute real GF(2^8) Affine Encryption in C
+            secret_bytes = secret_val.encode("utf-8")
+            ciphertext = blind_affine(secret_bytes, alpha, beta)
+            ciphertext_hex = ciphertext.hex()
 
-                # 4. Generate structured token incorporating the mathematical ciphertext
-                token_tag = f"[[BLIND_TOKEN_{self.counter}_{entity_type}:AFF8_{ciphertext_hex}]]"
+            # 3. Execute real (k, n) Shamir's Secret Sharing in C
+            shares = self.sss.split_text(secret_val)
 
-                # 5. Store ONLY mathematical shares and blinding parameters (NO PLAINTEXT!)
-                entity_info = BlindedEntity(
-                    token_label=token_tag,
-                    entity_type=entity_type,
-                    blind_alpha=alpha,
-                    blind_beta=beta,
-                    ciphertext_hex=ciphertext_hex,
-                    shares=shares
-                )
-                self.vault[token_tag] = entity_info
-                entities_found.append(entity_info)
+            # 4. Generate structured token incorporating the mathematical ciphertext
+            token_tag = f"[[BLIND_TOKEN_{self.counter}_{s.entity_type}:AFF8_{ciphertext_hex}]]"
 
-                if is_explicit:
-                    return token_tag
-                elif match.lastindex and match.lastindex >= 1:
-                    return raw_match.replace(secret_val, token_tag, 1)
-                else:
-                    return token_tag
+            # 5. Store ONLY mathematical shares and blinding parameters (NO PLAINTEXT!)
+            entity_info = BlindedEntity(
+                token_label=token_tag,
+                entity_type=s.entity_type,
+                blind_alpha=alpha,
+                blind_beta=beta,
+                ciphertext_hex=ciphertext_hex,
+                shares=shares,
+                detector=s.detector
+            )
+            self.vault[token_tag] = entity_info
+            entities_found.append(entity_info)
 
-            transformed = re.sub(regex_pat, replacer, transformed)
+            # Replace the sensitive span in the prompt
+            transformed = transformed[:s.start] + token_tag + transformed[s.end:]
 
         # Calculate Shannon entropy metrics
         raw_bytes = user_prompt.encode("utf-8")
@@ -129,8 +138,14 @@ class SemanticBlinder:
         all_shares_data = b"".join(s.encode("utf-8") for e in entities_found for s in e.shares)
         shares_entropy = calculate_entropy(all_shares_data) if all_shares_data else 0.0
 
+        all_detectors_triggered = list({
+            d for e in entities_found for d in e.detector.split(" + ")
+        })
+
         metrics = {
             "entities_protected": len(entities_found),
+            "detectors_active": ["DETERMINISTIC_REGEX", "SHANNON_ENTROPY", "CRF_PROBABILISTIC", "MARKOV_NGRAM"],
+            "detectors_triggered": all_detectors_triggered,
             "raw_entropy_bits": round(raw_entropy, 3),
             "blinded_entropy_bits": round(blinded_entropy, 3),
             "shares_entropy_bits": round(shares_entropy, 3),
