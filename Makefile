@@ -24,7 +24,16 @@ $(TARGET_TEST): core/test_engine.c core/crypto_engine.c core/crypto_engine.h
 test: $(TARGET_TEST)
 	./$(TARGET_TEST)
 
+test-python:
+	PYTHONPATH=. python3 tests/test_crypto_math.py
+	PYTHONPATH=. python3 tests/test_sss.py
+	PYTHONPATH=. python3 tests/test_timing_sidechannel.py
+	PYTHONPATH=. python3 tests/test_real_crypto_pipeline.py
+	PYTHONPATH=. python3 tests/test_detectors.py
+
+test-all: test test-python
+
 clean:
 	rm -f $(TARGET_LIB) $(TARGET_TEST) *.o
 
-.PHONY: all test clean
+.PHONY: all test test-python test-all clean

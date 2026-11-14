@@ -97,6 +97,35 @@ $\blacksquare$
 
 ---
 
-## 6. Experimental Validation
+## 6. Multi-Paradigm Ensemble Secret Detection Mathematics
+
+To detect arbitrary credentials, unstructured tokens, and private keys prior to cryptographic blinding without relying on heavy deep-learning dependencies, BlindAgent formalizes detection across four mathematical layers:
+
+### 6.1 Information-Theoretic Shannon Entropy ($H(X)$)
+Unstructured cryptographic tokens, random hashes, and secure passwords exhibit high statistical entropy over their character distribution. For a token $X$ of length $L$ over character alphabet $\Sigma$:
+$$H(X) = -\sum_{c \in \Sigma} P(c) \log_2 P(c), \quad P(c) = \frac{\text{Count}(c)}{L}$$
+A token is flagged as a high-entropy secret if:
+$$H(X) \ge 3.6 \quad \text{or} \quad (H(X) \ge 3.2 \land \text{Variety}(X) \ge 3) \quad \text{or} \quad (\text{IsHex}(X) \land L \ge 16)$$
+where $\text{Variety}(X) = \sum_{k \in \{\text{upper}, \text{lower}, \text{digit}, \text{symbol}\}} \mathbb{I}(k \in X)$.
+
+### 6.2 Linear-Chain CRF Probabilistic Sequence Model
+Tokens are scored using a linear combination of contextual trigger transitions and token-level morphological structure:
+$$\text{Score}(\mathbf{x}, y) = \sum_{t=1}^T \left( \lambda_{\text{ctx}} \cdot \mathbf{f}_{\text{ctx}}(y_t, x_{t-1}) + \lambda_{\text{morph}} \cdot \mathbf{f}_{\text{morph}}(y_t, x_t) \right)$$
+where:
+* $\mathbf{f}_{\text{ctx}}(y_t, x_{t-1}) = 1$ if $x_{t-1} \in \{\text{key}, \text{token}, \text{bearer}, \text{auth}, \text{secret}, \text{ssn}, \dots\}$
+* $\mathbf{f}_{\text{morph}}(y_t, x_t)$ captures token complexity:
+  $$\mathbf{f}_{\text{morph}}(x_t) = \mathbb{I}_{\text{digit}} + \mathbb{I}_{\text{upper}} + 1.5 \cdot \mathbb{I}_{\text{symbol}} + \min\left(\frac{|x_t|}{10}, 2.0\right) + 2.0 \cdot \frac{\text{Digits}(x_t)}{|x_t|}$$
+
+### 6.3 Character N-Gram Markov Language Model & Perplexity Outlier Detection
+Natural language and programming syntax follow predictable character transition dynamics. A second-order character Markov model trained on code and natural language evaluates the token perplexity:
+$$\text{PPL}(W) = \exp\left(-\frac{1}{N-2} \sum_{i=1}^{N-2} \ln P(c_{i+2} \mid c_i c_{i+1})\right)$$
+Using Laplace (add-one) smoothing over the training transition counts:
+$$P(c_{i+2} \mid c_i c_{i+1}) = \frac{\text{Count}(c_i c_{i+1} c_{i+2}) + 1.0}{\text{Count}(c_i c_{i+1}) + |V|}$$
+Natural English words have low perplexity ($\text{PPL} \le 15.0$). Obscure pseudo-random tokens trigger a sharp perplexity spike ($\text{PPL} > 32.0$), identifying anomalies independent of prefix syntax.
+
+---
+
+## 7. Experimental Validation
 - **Empirical Timing Analysis**: 50,000 continuous benchmark cycles comparing low Hamming-weight elements ($a=1$) against high Hamming-weight elements ($a=254$) demonstrate relative latency variance $\Delta t / t_{\text{max}} < 8\%$, which is strictly within OS scheduler noise.
 - **Shannon Entropy Verification**: Plaintext secret entropy of repeating characters ($0.0 \text{ bits}$) transitions to $> 3.5 \text{ bits/byte}$ in distributed shares, verifying pseudo-random uniform distribution.
+- **Zero-Plaintext Invariant**: Ephemeral client vault memory holds only Shamir polynomial shares and affine ciphertexts; plaintext recovery occurs strictly through client-side Lagrange interpolation.

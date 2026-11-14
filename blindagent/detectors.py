@@ -321,10 +321,13 @@ def merge_spans(spans: List[DetectedSpan]) -> List[DetectedSpan]:
             elif prev.entity_type == "EXPLICIT_SECRET":
                 entity_type = "EXPLICIT_SECRET"
 
+            # Retain the enclosing or explicit secret text representation
+            chosen_text = prev.text if (cur.end <= prev.end or prev.entity_type == "EXPLICIT_SECRET") else cur.text
+
             merged[-1] = DetectedSpan(
                 start=prev.start,
                 end=new_end,
-                text=cur.text,
+                text=chosen_text,
                 entity_type=entity_type,
                 detector=combined_detector,
                 score=max(prev.score, cur.score)

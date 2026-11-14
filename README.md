@@ -80,19 +80,34 @@ The cloud provider gains **zero mathematical knowledge** of the secret.
 
 ---
 
-## 🔒 Secret Detection & The Universal `<secret>` Tag
+## 🔒 4-Layer Ensemble Secret Detection & The Universal `<secret>` Tag
 
-BlindAgent utilizes a zero-dependency, lightweight detection engine designed for instant portability without requiring judges to download gigabytes of model weights:
+BlindAgent utilizes a zero-dependency, multi-paradigm detection engine designed for instant portability without requiring judges to download gigabytes of model weights:
 
-1. **Automatic Pattern Recognition**: Automatically captures real-world API credentials (`AKIA...`, `sk-...`, `AIzaSy...`), credentials (`master_key: ...`, `password: ...`), national IDs (SSNs), credit cards, and monetary values.
-2. **The Universal `<secret>` Tag (Escape Hatch)**:
-   You can wrap **any arbitrary secret** in `<secret>...</secret>` tags regardless of format:
-   ```text
-   Authorize deployment using <secret>blue-kangaroo-vault-key-9988</secret> for cluster A.
-   ```
-   * The text inside `<secret>...</secret>` is immediately isolated.
-   * It is encrypted into a $\text{GF}(2^8)$ affine token (`[[BLIND_TOKEN_...:AFF8_...]]`) and split into $(k, n)$ Shamir polynomial shares.
-   * The cloud host receives only the ciphertext; the secret is recovered dynamically in the client enclave upon return.
+1. **Layer 1: Deterministic Patterns & Explicit Tags**:
+   - Automatically captures structured credentials (`AKIA...`, `sk-...`, `AIzaSy...`), explicit assignments (`master_key: ...`, `password: ...`), national IDs (SSNs), credit cards, and monetary values.
+   - **The Universal `<secret>` Tag (Escape Hatch)**:
+     Wrap any arbitrary sensitive payload in `<secret>...</secret>` tags regardless of format:
+     ```text
+     Authorize deployment using <secret>blue-kangaroo-vault-key-9988</secret> for cluster A.
+     ```
+     The text inside `<secret>...</secret>` is isolated, encrypted into a $\text{GF}(2^8)$ affine token (`[[BLIND_TOKEN_...:AFF8_...]]`), split into $(k, n)$ Shamir polynomial shares, and unblinded strictly in the client enclave upon return.
+
+2. **Layer 2: Sliding-Window Shannon Information Entropy ($H(X)$)**:
+   - Evaluates statistical character entropy: $H(X) = -\sum p(x) \log_2 p(x)$.
+   - Tokens with high entropy ($H(X) \ge 3.6$ bits/symbol) or long hex hashes ($\ge 16$ characters) are captured even without matching a known regex pattern.
+
+3. **Layer 3: Linear-Chain CRF Probabilistic Sequence Tagger**:
+   - Models contextual trigger transitions (e.g. preceding tokens like `key`, `token`, `bearer`, `auth`, `api`) coupled with token morphological features (mixed casing, numeric ratio, symbol density).
+
+4. **Layer 4: Character N-Gram Markov Language Model (Perplexity Anomaly)**:
+   - Evaluates character trigram probabilities against standard natural language and programming vocabulary.
+   - Synthetic pseudorandom tokens and obscure credentials yield distinct perplexity spikes ($\text{PPL} > 32.0$), flagging unexpected sensitive parameters.
+
+5. **Consensus Merging & Benign Vocabulary Safeguards**:
+   - Overlapping spans are unified into maximal consensus tokens without duplicate replacements.
+   - A curated `BENIGN_WORDS` set protects common SQL, shell, and English syntax words (`SELECT`, `WHERE`, `EMPLOYEE`, `DATABASE`, `BALANCE`) from false-positive masking.
+   - Tokens are replaced in descending offset order (right-to-left) to guarantee zero string-index drift.
 
 > **Production Note**: In enterprise environments, this hybrid scanner can be paired with an on-device local Small Language Model (SLM / Presidio) without altering any part of the underlying C/Rust cryptographic engine.
 
@@ -120,18 +135,17 @@ echo 'OPENAI_API_KEY="your-openai-api-key-here"' > .env
 If no API key is provided, BlindAgent automatically utilizes its built-in local cloud host simulator for instant, zero-dependency offline evaluation.
 
 ### 1. Compile Native Cryptographic Engine
-Compile the C shared library and run the built-in mathematical test suite:
+Compile the C shared library and run the built-in mathematical test suite (supports macOS, Linux, and Windows):
 ```bash
 make clean && make test
 ```
 
 ### 2. Run All Mathematical & Side-Channel Tests
+Run the entire native C and Python test suite in a single command:
 ```bash
-PYTHONPATH=. python3 tests/test_crypto_math.py
-PYTHONPATH=. python3 tests/test_sss.py
-PYTHONPATH=. python3 tests/test_timing_sidechannel.py
-PYTHONPATH=. python3 tests/test_real_crypto_pipeline.py
+make test-all
 ```
+*(Or run individual suites: `test_crypto_math.py`, `test_sss.py`, `test_timing_sidechannel.py`, `test_real_crypto_pipeline.py`, `test_detectors.py`).*
 
 ### 3. Launch Terminal User Interface (TUI)
 Experience real-time dual-pane packet inspection right in your terminal:
@@ -152,31 +166,34 @@ Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser!
 
 ```
 blindagent/
-├── Makefile                          # Native build system for C shared library
+├── Makefile                          # Native build system for C shared library & test runner
 ├── README.md                         # Project documentation and architectural overview
-├── core/                             # Low-level C cryptographic engine
+├── core/                             # Low-level C cryptographic engine (Cross-platform)
 │   ├── crypto_engine.h               # GF(2^8) & SSS API header
-│   ├── crypto_engine.c               # Constant-time arithmetic & polynomial solver
+│   ├── crypto_engine.c               # Constant-time arithmetic & polynomial solver (Win32/POSIX CSPRNG)
 │   └── test_engine.c                 # Standalone native C unit tests
 ├── rust_core/                        # Rust implementation
 │   ├── Cargo.toml
 │   └── src/lib.rs                    # Rust implementation of GF(2^8) & SSS
 ├── blindagent/                       # Python orchestration pipeline
 │   ├── __init__.py
-│   ├── crypto_bridge.py              # Zero-copy ctypes bridge to libblindcrypto
+│   ├── crypto_bridge.py              # Zero-copy ctypes bridge to libblindcrypto (.dylib/.so/.dll)
 │   ├── sss.py                        # High-level Shamir's Secret Sharing module
 │   ├── blinder.py                    # Semantic parser & homomorphic blinder
+│   ├── detectors.py                  # 4-layer ensemble secret scanner (Regex, Entropy, CRF, Markov)
 │   ├── llm_client.py                 # Multi-provider LLM connector (Gemini/OpenAI/Sim)
 │   └── pipeline.py                   # Enclave pipeline controller
 ├── ui/
 │   ├── tui.py                        # Terminal User Interface with Rich
 │   ├── server.py                     # FastAPI backend on localhost:8000
-│   └── static/index.html             # Single-page web dashboard with KaTeX
+│   ├── react/                        # React modern frontend dashboard
+│   └── static/index.html             # Single-page web dashboard fallback with KaTeX
 ├── tests/
 │   ├── test_crypto_math.py           # Finite field axioms validation
 │   ├── test_sss.py                   # Threshold (k, n) security tests
 │   ├── test_timing_sidechannel.py    # Constant-time empirical benchmark
-│   └── test_real_crypto_pipeline.py  # End-to-end zero-knowledge integrity suite
+│   ├── test_real_crypto_pipeline.py  # End-to-end zero-knowledge integrity suite
+│   └── test_detectors.py             # 4-layer ensemble detection & false-positive suite
 └── docs/
     └── MATHEMATICS.md                # Academic security proofs & LaTeX formulas
 ```
