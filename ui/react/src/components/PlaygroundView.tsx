@@ -5,41 +5,22 @@ const PRESETS = [
   {
     id: 1,
     name: 'SQL + SSN',
-    prompt: 'Please generate an SQL audit query for employee\nSSN: 123-45-6789 and master_key: SuperSecretMasterPassword!\nwith balance $50,000.',
-    standbyVault: [
-      { token: 'TOKEN_01', type: 'SSN / PII', plain: '123-45-6789', wire: '[TOKEN_SSN_01]' },
-      { token: 'TOKEN_02', type: 'MASTER KEY', plain: 'SuperSecretMaster!', wire: '[TOKEN_KEY_02]' },
-      { token: 'TOKEN_03', type: 'BALANCE', plain: '$50,000.00', wire: '[TOKEN_AMT_03]' }
-    ],
-    standbyWire: "SELECT id, salary FROM payroll WHERE ssn = '[TOKEN_SSN_01]' AND token = '[TOKEN_KEY_02]'",
-    standbyRestored: "SELECT id, salary FROM payroll WHERE ssn = '123-45-6789' AND token = 'SuperSecretMasterPassword!'"
+    prompt: 'Please generate an SQL audit query for employee\nSSN: 123-45-6789 and master_key: SuperSecretMasterPassword!\nwith balance $50,000.'
   },
   {
     id: 2,
     name: 'MEDICAL KEY',
-    prompt: 'Summarize confidential diagnosis for patient SSN: 987-65-4321 holding authorized api_secret: AIzaSyD988223311AABBC-998811.',
-    standbyVault: [
-      { token: 'TOKEN_01', type: 'SSN / PATIENT', plain: '987-65-4321', wire: '[TOKEN_SSN_01]' },
-      { token: 'TOKEN_02', type: 'API SECRET', plain: 'AIzaSyD9882...', wire: '[TOKEN_SEC_02]' }
-    ],
-    standbyWire: "CLINICAL SUMMARY: Patient [TOKEN_SSN_01] records retrieved via key [TOKEN_SEC_02].",
-    standbyRestored: "CLINICAL SUMMARY: Patient 987-65-4321 records retrieved via key AIzaSyD988223311AABBC-998811."
+    prompt: 'Summarize confidential diagnosis for patient SSN: 987-65-4321 holding authorized api_secret: AIzaSyD988223311AABBC-998811.'
   },
   {
     id: 3,
     name: 'TAGGED SECRET',
-    prompt: 'Authorize system transfer for <secret>TOP_SECRET_VAULT_KEY_007</secret> with transaction limit $250,000.',
-    standbyVault: [
-      { token: 'TOKEN_01', type: 'TAGGED SECRET', plain: 'TOP_SECRET_VAULT_KEY_007', wire: '[TOKEN_TAGGED_01]' },
-      { token: 'TOKEN_02', type: 'AMOUNT', plain: '$250,000.00', wire: '[TOKEN_LIMIT_02]' }
-    ],
-    standbyWire: "TRANSFER AUTHORIZATION: Approved under token [TOKEN_TAGGED_01] for max [TOKEN_LIMIT_02].",
-    standbyRestored: "TRANSFER AUTHORIZATION: Approved under token TOP_SECRET_VAULT_KEY_007 for max $250,000.00."
+    prompt: 'Authorize system transfer for <secret>TOP_SECRET_VAULT_KEY_007</secret> with transaction limit $250,000.'
   }
 ];
 
 export const PlaygroundView: React.FC = () => {
-  // Start in pre-execution state (no preset selected, empty prompt, no result)
+  // Pre-execution initial state
   const [selectedPreset, setSelectedPreset] = useState<number>(0);
   const [prompt, setPrompt] = useState<string>('');
   const [threshold, setThreshold] = useState<number>(3);
@@ -48,11 +29,19 @@ export const PlaygroundView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ExecuteResponse | null>(null);
 
-  const handleSelectPreset = (p: typeof PRESETS[0]) => {
+  const handleSelectPreset = async (p: typeof PRESETS[0]) => {
     setSelectedPreset(p.id);
     setPrompt(p.prompt);
-    setResult(null);
     setError(null);
+    setLoading(true);
+    try {
+      const data = await executePipeline(p.prompt, threshold, totalShares);
+      setResult(data);
+    } catch (err: any) {
+      setError(err.message || 'Execution error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExecute = async () => {
@@ -76,8 +65,8 @@ export const PlaygroundView: React.FC = () => {
     setError(null);
   };
 
-  const isPreExecution = selectedPreset === 0 && !prompt.trim() && !result;
-  const currentPresetData = PRESETS.find(p => p.id === selectedPreset) || PRESETS[0];
+  // The view is in pre-execution state whenever no execution has been performed yet
+  const isPreExecution = result === null;
 
   return (
     <div className="max-w-[1440px] mx-auto px-9 py-12">
@@ -126,7 +115,9 @@ export const PlaygroundView: React.FC = () => {
                 value={prompt}
                 onChange={(e) => {
                   setPrompt(e.target.value);
+                  // When user edits text manually, clear prior result so it stays in standby
                   if (selectedPreset !== 0) setSelectedPreset(0);
+                  if (result !== null) setResult(null);
                 }}
                 rows={4}
                 placeholder="Enter sensitive query (e.g. SQL with SSN, API master key, medical credentials)..."
@@ -209,10 +200,12 @@ export const PlaygroundView: React.FC = () => {
               </div>
               <div className="space-y-1.5 max-w-[420px]">
                 <div className="font-mono text-[12px] font-bold text-[#1B1D54] tracking-widest uppercase">
-                  AWAITING CONFIDENTIAL PROMPT
+                  {prompt.trim() ? 'STANDBY (READY TO EXECUTE)' : 'AWAITING CONFIDENTIAL PROMPT'}
                 </div>
                 <p className="font-['Inter_Tight'] text-[13px] text-[#64748B] leading-relaxed">
-                  Select a preset above or enter a prompt with sensitive credentials to inspect real-time Galois Field GF(2^8) blinding.
+                  {prompt.trim()
+                    ? 'Prompt input detected. Click \'EXECUTE\' to evaluate Galois Field GF(2^8) blinding and transmit to cloud model.'
+                    : 'Select a preset above or enter a prompt with sensitive credentials to inspect real-time Galois Field GF(2^8) blinding.'}
                 </p>
               </div>
             </div>
@@ -255,18 +248,9 @@ export const PlaygroundView: React.FC = () => {
                     </div>
                   ))
                 ) : (
-                  /* Standby sample rows for selected preset */
-                  currentPresetData.standbyVault.map((row, idx) => (
-                    <div key={idx} className="pt-2 border-t border-[#E2E8F0] grid grid-cols-12 gap-2 items-center text-[12px] font-mono">
-                      <div className="col-span-2 font-bold text-[#1B1D54]">{row.token}</div>
-                      <div className="col-span-2 text-[#111827]">{row.type}</div>
-                      <div className="col-span-4 font-semibold text-[#0D7A5F] truncate">{row.plain}</div>
-                      <div className="col-span-3 font-semibold text-[#DC2626] truncate">{row.wire}</div>
-                      <div className="col-span-1 text-right text-[11px] font-bold text-[#0D7A5F]">
-                        SHIELDED
-                      </div>
-                    </div>
-                  ))
+                  <div className="pt-2 border-t border-[#E2E8F0] text-[12px] font-mono text-[#64748B] py-3 text-center">
+                    No explicit credentials or sensitive tokens detected in prompt.
+                  </div>
                 )}
               </div>
 
@@ -280,7 +264,7 @@ export const PlaygroundView: React.FC = () => {
                     HOST WIRE PAYLOAD (CLOUD LOG)
                   </div>
                   <div className="mt-1 p-2.5 bg-slate-50 border border-[#E2E8F0] rounded-none font-mono text-[11px] text-[#111827] whitespace-pre-wrap">
-                    {result ? result.wire_payload : currentPresetData.standbyWire}
+                    {result ? result.wire_payload : ''}
                   </div>
                 </div>
 
@@ -291,7 +275,7 @@ export const PlaygroundView: React.FC = () => {
                     CLIENT ENCLAVE OUTPUT (RESTORED)
                   </div>
                   <div className="mt-1 p-2.5 bg-slate-50 border border-[#E2E8F0] rounded-none font-mono text-[11px] text-[#1B1D54] whitespace-pre-wrap">
-                    {result ? result.final_output : currentPresetData.standbyRestored}
+                    {result ? result.final_output : ''}
                   </div>
                 </div>
               </div>
@@ -301,9 +285,9 @@ export const PlaygroundView: React.FC = () => {
 
               {/* Telemetry Bar */}
               <div className="flex flex-wrap items-center justify-between text-[11px] font-mono font-bold text-[#0D7A5F] pt-1">
-                <span>SHIELDED: {result ? result.metrics.entities_protected : currentPresetData.standbyVault.length} ENTITIES</span>
-                <span>ENTROPY: {result ? result.metrics.blinded_entropy_bits : 192} BITS</span>
-                <span>LATENCY: {result ? result.execution_time_ms : 24.8} MS</span>
+                <span>SHIELDED: {result ? result.metrics.entities_protected : 0} ENTITIES</span>
+                <span>ENTROPY: {result ? result.metrics.blinded_entropy_bits : 0} BITS</span>
+                <span>LATENCY: {result ? result.execution_time_ms : 0} MS</span>
                 <span>KEY LEAK: 0.00% (NONE)</span>
               </div>
             </div>
